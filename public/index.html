@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NexaOps - Business Management</title>
+    <style>
+        /* Basic styling for mobile-first design */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background-color: #f5f5f5;
+            padding: 10px;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        header {
+            background: #2c3e50;
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+        
+        h1 {
+            font-size: 24px;
+            margin-bottom: 5px;
+        }
+        
+        .subtitle {
+            font-size: 14px;
+            opacity: 0.8;
+        }
+        
+        .section {
+            padding: 20px;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .section:last-child {
+            border-bottom: none;
+        }
+        
+        h2 {
+            color: #2c3e50;
+            margin-bottom: 15px;
+            font-size: 18px;
+        }
+        
+        .form-group {
+            margin-bottom: 15px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+            color: #555;
+        }
+        
+        input, select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+        
+        input:focus, select:focus {
+            outline: none;
+            border-color: #3498db;
+            box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
+        }
+        
+        button {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            width: 100%;
+            margin-bottom: 10px;
+        }
+        
+        button:hover {
+            background: #2980b9;
+        }
+        
+        button:disabled {
+            background: #bdc3c7;
+            cursor: not-allowed;
+        }
+        
+        .results {
+            margin-top: 20px;
+        }
+        
+        .item {
+            background: #f8f9fa;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 4px;
+            border-left: 4px solid #3498db;
+        }
+        
+        .item h3 {
+            color: #2c3e50;
+            margin-bottom: 8px;
+            font-size: 16px;
+        }
+        
+        .item p {
+            margin: 3px 0;
+            font-size: 14px;
+            color: #666;
+        }
+        
+        .empty {
+            text-align: center;
+            color: #999;
+            font-style: italic;
+            padding: 20px;
+        }
+        
+        .error {
+            background: #e74c3c;
+            color: white;
+            padding: 10px;
+            border-radius: 4px;
+            margin-bottom: 15px;
+        }
+        
+        .success {
+            background: #27ae60;
+            color: white;
+            padding: 10px;
+            border-radius: 4px;
+            margin-bottom: 15px;
+        }
+        
+        .loading {
+            text-align: center;
+            color: #666;
+            font-style: italic;
+        }
+        
+        @media (min-width: 768px) {
+            .form-row {
+                display: flex;
+                gap: 15px;
+            }
+            
+            .form-row .form-group {
+                flex: 1;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header section -->
+        <header>
+            <h1>NexaOps</h1>
+            <p class="subtitle">Business Management Dashboard</p>
+        </header>
+
+        <!-- Sales section -->
+        <div class="section">
+            <h2>📊 Sales</h2>
+            
+            <!-- Add sale form -->
+            <form id="salesForm">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="saleItem">Item Name *</label>
+                        <input type="text" id="saleItem" name="item_name" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="saleAmount">Amount *</label>
+                        <input type="number" id="saleAmount" name="amount" step="0.01" min="0" required>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="saleDate">Date *</label>
+                        <input type="date" id="saleDate" name="date" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="saleCustomer">Customer</label>
+                        <input type="text" id="saleCustomer" name="customer">
+                    </div>
+                </div>
+                <button type="submit">Add Sale</button>
+            </form>
+            
+            <!-- Sales results -->
+            <div class="results">
+                <button onclick="loadSales()">Refresh Sales</button>
+                <div id="salesResults">
+                    <div class="loading">Loading sales...</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Expenses section -->
+        <div class="section">
+            <h2>💰 Expenses</h2>
+            
+            <!-- Add expense form -->
+            <form id="expensesForm">
+                <div class="form-group">
+                    <label for="expenseDescription">Description *</label>
+                    <input type="text" id="expenseDescription" name="description" required>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="expenseAmount">Amount *</label>
+                        <input type="number" id="expenseAmount" name="amount" step="0.01" min="0" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="expenseDate">Date *</label>
+                        <input type="date" id="expenseDate" name="date" required>
+                    </div>
+                </div>
+                <button type="submit">Add Expense</button>
+            </form>
+            
+            <!-- Expenses results -->
+            <div class="results">
+                <button onclick="loadExpenses()">Refresh Expenses</button>
+                <div id="expensesResults">
+                    <div class="loading">Loading expenses...</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Inventory section -->
+        <div class="section">
+            <h2>📦 Inventory</h2>
+            
+            <!-- Add inventory form -->
+            <form id="inventoryForm">
+                <div class="form-group">
+                    <label for="inventoryItem">Item Name *</label>
+                    <input type="text" id="inventoryItem" name="item_name" required>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="inventoryQuantity">Quantity *</label>
+                        <input type="number" id="inventoryQuantity" name="quantity" min="0" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="inventoryPrice">Price *</label>
+                        <input type="number" id="inventoryPrice" name="price" step="0.01" min="0" required>
+                    </div>
+                </div>
+                <button type="submit">Add Inventory Item</button>
+            </form>
+            
+            <!-- Inventory results -->
+            <div class="results">
+                <button onclick="loadInventory()">Refresh Inventory</button>
+                <div id="inventoryResults">
+                    <div class="loading">Loading inventory...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
