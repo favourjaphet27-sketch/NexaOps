@@ -4,6 +4,14 @@
 // API base URL - adjust if running on different port
 const API_BASE = '/api';
 
+// Dashboard data cache
+let dashboardData = {
+    totalSales: 0,
+    totalExpenses: 0,
+    totalInventoryItems: 0,
+    totalInventoryValue: 0
+};
+
 // Utility function to show messages to user
 function showMessage(message, type = 'success') {
     // Create message element
@@ -40,6 +48,85 @@ function formatDate(dateString) {
     });
 }
 
+// Dashboard functions
+async function loadDashboard() {
+    try {
+        // Load all data in parallel
+        const [salesResponse, expensesResponse, inventoryResponse] = await Promise.all([
+            fetch(`${API_BASE}/sales`),
+            fetch(`${API_BASE}/expenses`),
+            fetch(`${API_BASE}/inventory`)
+        ]);
+
+        const salesData = await salesResponse.json();
+        const expensesData = await expensesResponse.json();
+        const inventoryData = await inventoryResponse.json();
+
+        // Calculate totals
+        const totalSales = salesData.data ? salesData.data.reduce((sum, sale) => sum + sale.amount, 0) : 0;
+        const totalExpenses = expensesData.data ? expensesData.data.reduce((sum, expense) => sum + expense.amount, 0) : 0;
+        const totalInventoryItems = inventoryData.data ? inventoryData.data.length : 0;
+        const totalInventoryValue = inventoryData.data ? inventoryData.data.reduce((sum, item) => sum + (item.quantity * item.price), 0) : 0;
+
+        // Update dashboard data
+        dashboardData = {
+            totalSales,
+            totalExpenses,
+            totalInventoryItems,
+            totalInventoryValue
+        };
+
+        // Update dashboard display
+        updateDashboardDisplay();
+    } catch (error) {
+        console.error('Error loading dashboard:', error);
+        showDashboardError();
+    }
+}
+
+function updateDashboardDisplay() {
+    const dashboardDiv = document.getElementById('dashboardSummary');
+    
+    const netProfit = dashboardData.totalSales - dashboardData.totalExpenses;
+    
+    dashboardDiv.innerHTML = `
+        <div class="summary-card">
+            <h3>💰 Total Sales</h3>
+            <div class="value">${formatCurrency(dashboardData.totalSales)}</div>
+            <div class="subtitle">${dashboardData.totalSales > 0 ? 'Great performance!' : 'No sales yet'}</div>
+        </div>
+        <div class="summary-card">
+            <h3>💸 Total Expenses</h3>
+            <div class="value">${formatCurrency(dashboardData.totalExpenses)}</div>
+            <div class="subtitle">${dashboardData.totalExpenses > 0 ? 'Track your spending' : 'No expenses yet'}</div>
+        </div>
+        <div class="summary-card">
+            <h3>📦 Inventory Items</h3>
+            <div class="value">${dashboardData.totalInventoryItems}</div>
+            <div class="subtitle">${dashboardData.totalInventoryValue > 0 ? `Worth ${formatCurrency(dashboardData.totalInventoryValue)}` : 'No inventory yet'}</div>
+        </div>
+        <div class="summary-card">
+            <h3>📈 Net Profit</h3>
+            <div class="value" style="color: ${netProfit >= 0 ? '#27ae60' : '#e74c3c'}">${formatCurrency(netProfit)}</div>
+            <div class="subtitle">${netProfit >= 0 ? 'Profitable!' : 'Review expenses'}</div>
+        </div>
+    `;
+}
+
+function showDashboardError() {
+    const dashboardDiv = document.getElementById('dashboardSummary');
+    dashboardDiv.innerHTML = `
+        <div class="loading-dashboard">
+            ⚠️ Unable to load dashboard data. Check your connection.
+        </div>
+    `;
+}
+
+// Auto-refresh dashboard when data changes
+function refreshDashboard() {
+    loadDashboard();
+}
+
 // Sales API functions
 async function addSale(saleData) {
     try {
@@ -56,6 +143,7 @@ async function addSale(saleData) {
         if (response.ok) {
             showMessage('Sale added successfully!', 'success');
             loadSales(); // Refresh the sales list
+            refreshDashboard(); // Refresh dashboard totals
             return result;
         } else {
             // Handle validation errors
@@ -128,6 +216,7 @@ async function addExpense(expenseData) {
         if (response.ok) {
             showMessage('Expense added successfully!', 'success');
             loadExpenses(); // Refresh the expenses list
+            refreshDashboard(); // Refresh dashboard totals
             return result;
         } else {
             // Handle validation errors
@@ -199,6 +288,7 @@ async function addInventoryItem(itemData) {
         if (response.ok) {
             showMessage('Inventory item added successfully!', 'success');
             loadInventory(); // Refresh the inventory list
+            refreshDashboard(); // Refresh dashboard totals
             return result;
         } else {
             // Handle validation errors
@@ -317,6 +407,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     
     // Load initial data when page loads
+    loadDashboard(); // Load dashboard first
     loadSales();
     loadExpenses();
     loadInventory();

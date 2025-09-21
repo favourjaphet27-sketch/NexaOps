@@ -1,0 +1,756 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NexaOps - Business Management Dashboard</title>
+    <style>
+        /* Basic styling for mobile-first design */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            line-height: 1.6;
+            color: #e8e8e8;
+            background: linear-gradient(135deg, #2c1810 0%, #3d2817 50%, #4a2c1a 100%);
+            min-height: 100vh;
+            padding: 10px;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+            overflow: hidden;
+            backdrop-filter: blur(10px);
+        }
+        
+        header {
+            background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+        
+        /* Dashboard Summary Styles */
+        .dashboard-summary {
+            background: linear-gradient(135deg, #8b4513 0%, #a0522d 50%, #cd853f 100%);
+            color: white;
+            padding: 20px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+        
+        .summary-card {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .summary-card h3 {
+            font-size: 14px;
+            margin-bottom: 8px;
+            opacity: 0.9;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .summary-card .value {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        
+        .summary-card .subtitle {
+            font-size: 12px;
+            opacity: 0.8;
+        }
+        
+        .loading-dashboard {
+            text-align: center;
+            padding: 20px;
+            color: rgba(255, 255, 255, 0.8);
+        }
+        
+        h1 {
+            font-size: 24px;
+            margin-bottom: 5px;
+        }
+        
+        .subtitle {
+            font-size: 14px;
+            opacity: 0.8;
+        }
+        
+        .section {
+            padding: 20px;
+            border-bottom: 1px solid rgba(0,0,0,0.1);
+            background: rgba(255, 255, 255, 0.02);
+        }
+        
+        .section:last-child {
+            border-bottom: none;
+        }
+        
+        h2 {
+            color: #2c3e50;
+            margin-bottom: 15px;
+            font-size: 18px;
+        }
+        
+        .form-group {
+            margin-bottom: 15px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+            color: #555;
+        }
+        
+        input, select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+        
+        input:focus, select:focus {
+            outline: none;
+            border-color: #3498db;
+            box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
+        }
+        
+        button {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            width: 100%;
+            margin-bottom: 10px;
+        }
+        
+        button:hover {
+            background: #2980b9;
+        }
+        
+        button:disabled {
+            background: #bdc3c7;
+            cursor: not-allowed;
+        }
+        
+        .results {
+            margin-top: 20px;
+        }
+        
+        .item {
+            background: #f8f9fa;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 4px;
+            border-left: 4px solid #3498db;
+        }
+        
+        .item h3 {
+            color: #2c3e50;
+            margin-bottom: 8px;
+            font-size: 16px;
+        }
+        
+        .item p {
+            margin: 3px 0;
+            font-size: 14px;
+            color: #666;
+        }
+        
+        .empty {
+            text-align: center;
+            color: #999;
+            font-style: italic;
+            padding: 20px;
+        }
+        
+        .error {
+            background: #e74c3c;
+            color: white;
+            padding: 10px;
+            border-radius: 4px;
+            margin-bottom: 15px;
+        }
+        
+        .success {
+            background: #27ae60;
+            color: white;
+            padding: 10px;
+            border-radius: 4px;
+            margin-bottom: 15px;
+        }
+        
+        .loading {
+            text-align: center;
+            color: #666;
+            font-style: italic;
+        }
+        
+        @media (min-width: 768px) {
+            .form-row {
+                display: flex;
+                gap: 15px;
+            }
+            
+            .form-row .form-group {
+                flex: 1;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header section -->
+        <header>
+            <h1>NexaOps</h1>
+            <p class="subtitle">Business Management Dashboard</p>
+        </header>
+
+        <!-- Quick Dashboard Summary -->
+        <div class="dashboard-summary" id="dashboardSummary">
+            <div class="loading-dashboard">Loading dashboard...</div>
+        </div>
+
+        <!-- Sales section -->
+        <div class="section">
+            <h2>📊 Sales</h2>
+            
+            <!-- Add sale form -->
+            <form id="salesForm">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="saleItem">Item Name *</label>
+                        <input type="text" id="saleItem" name="item_name" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="saleAmount">Amount *</label>
+                        <input type="number" id="saleAmount" name="amount" step="0.01" min="0" required>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="saleDate">Date *</label>
+                        <input type="date" id="saleDate" name="date" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="saleCustomer">Customer</label>
+                        <input type="text" id="saleCustomer" name="customer">
+                    </div>
+                </div>
+                <button type="submit">Add Sale</button>
+            </form>
+            
+            <!-- Sales results -->
+            <div class="results">
+                <button onclick="loadSales()">Refresh Sales</button>
+                <div id="salesResults">
+                    <div class="loading">Loading sales...</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Expenses section -->
+        <div class="section">
+            <h2>💰 Expenses</h2>
+            
+            <!-- Add expense form -->
+            <form id="expensesForm">
+                <div class="form-group">
+                    <label for="expenseDescription">Description *</label>
+                    <input type="text" id="expenseDescription" name="description" required>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="expenseAmount">Amount *</label>
+                        <input type="number" id="expenseAmount" name="amount" step="0.01" min="0" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="expenseDate">Date *</label>
+                        <input type="date" id="expenseDate" name="date" required>
+                    </div>
+                </div>
+                <button type="submit">Add Expense</button>
+            </form>
+            
+            <!-- Expenses results -->
+            <div class="results">
+                <button onclick="loadExpenses()">Refresh Expenses</button>
+                <div id="expensesResults">
+                    <div class="loading">Loading expenses...</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Inventory section -->
+        <div class="section">
+            <h2>📦 Inventory</h2>
+            
+            <!-- Add inventory form -->
+            <form id="inventoryForm">
+                <div class="form-group">
+                    <label for="inventoryItem">Item Name *</label>
+                    <input type="text" id="inventoryItem" name="item_name" required>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="inventoryQuantity">Quantity *</label>
+                        <input type="number" id="inventoryQuantity" name="quantity" min="0" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="inventoryPrice">Price *</label>
+                        <input type="number" id="inventoryPrice" name="price" step="0.01" min="0" required>
+                    </div>
+                </div>
+                <button type="submit">Add Inventory Item</button>
+            </form>
+            
+            <!-- Inventory results -->
+            <div class="results">
+                <button onclick="loadInventory()">Refresh Inventory</button>
+                <div id="inventoryResults">
+                    <div class="loading">Loading inventory...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // NexaOps Frontend JavaScript with Dashboard
+        // Handles API interactions and dynamic UI updates
+
+        // API base URL - adjust if running on different port
+        const API_BASE = '/api';
+
+        // Dashboard data cache
+        let dashboardData = {
+            totalSales: 0,
+            totalExpenses: 0,
+            totalInventoryItems: 0,
+            totalInventoryValue: 0
+        };
+
+        // Utility function to show messages to user
+        function showMessage(message, type = 'success') {
+            // Create message element
+            const messageDiv = document.createElement('div');
+            messageDiv.className = type;
+            messageDiv.textContent = message;
+            
+            // Insert at top of container
+            const container = document.querySelector('.container');
+            container.insertBefore(messageDiv, container.firstChild);
+            
+            // Auto-remove after 3 seconds
+            setTimeout(() => {
+                if (messageDiv.parentNode) {
+                    messageDiv.parentNode.removeChild(messageDiv);
+                }
+            }, 3000);
+        }
+
+        // Utility function to format currency
+        function formatCurrency(amount) {
+            return new Intl.NumberFormat('en-US', {
+                style: 'currency',
+                currency: 'USD'
+            }).format(amount);
+        }
+
+        // Utility function to format date
+        function formatDate(dateString) {
+            return new Date(dateString).toLocaleDateString('en-US', {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric'
+            });
+        }
+
+        // Dashboard functions
+        async function loadDashboard() {
+            try {
+                // Load all data in parallel
+                const [salesResponse, expensesResponse, inventoryResponse] = await Promise.all([
+                    fetch(`${API_BASE}/sales`),
+                    fetch(`${API_BASE}/expenses`),
+                    fetch(`${API_BASE}/inventory`)
+                ]);
+
+                const salesData = await salesResponse.json();
+                const expensesData = await expensesResponse.json();
+                const inventoryData = await inventoryResponse.json();
+
+                // Calculate totals
+                const totalSales = salesData.data ? salesData.data.reduce((sum, sale) => sum + sale.amount, 0) : 0;
+                const totalExpenses = expensesData.data ? expensesData.data.reduce((sum, expense) => sum + expense.amount, 0) : 0;
+                const totalInventoryItems = inventoryData.data ? inventoryData.data.length : 0;
+                const totalInventoryValue = inventoryData.data ? inventoryData.data.reduce((sum, item) => sum + (item.quantity * item.price), 0) : 0;
+
+                // Update dashboard data
+                dashboardData = {
+                    totalSales,
+                    totalExpenses,
+                    totalInventoryItems,
+                    totalInventoryValue
+                };
+
+                // Update dashboard display
+                updateDashboardDisplay();
+            } catch (error) {
+                console.error('Error loading dashboard:', error);
+                showDashboardError();
+            }
+        }
+
+        function updateDashboardDisplay() {
+            const dashboardDiv = document.getElementById('dashboardSummary');
+            
+            const netProfit = dashboardData.totalSales - dashboardData.totalExpenses;
+            
+            dashboardDiv.innerHTML = `
+                <div class="summary-card">
+                    <h3>💰 Total Sales</h3>
+                    <div class="value">${formatCurrency(dashboardData.totalSales)}</div>
+                    <div class="subtitle">${dashboardData.totalSales > 0 ? 'Great performance!' : 'No sales yet'}</div>
+                </div>
+                <div class="summary-card">
+                    <h3>💸 Total Expenses</h3>
+                    <div class="value">${formatCurrency(dashboardData.totalExpenses)}</div>
+                    <div class="subtitle">${dashboardData.totalExpenses > 0 ? 'Track your spending' : 'No expenses yet'}</div>
+                </div>
+                <div class="summary-card">
+                    <h3>📦 Inventory Items</h3>
+                    <div class="value">${dashboardData.totalInventoryItems}</div>
+                    <div class="subtitle">${dashboardData.totalInventoryValue > 0 ? `Worth ${formatCurrency(dashboardData.totalInventoryValue)}` : 'No inventory yet'}</div>
+                </div>
+                <div class="summary-card">
+                    <h3>📈 Net Profit</h3>
+                    <div class="value" style="color: ${netProfit >= 0 ? '#27ae60' : '#e74c3c'}">${formatCurrency(netProfit)}</div>
+                    <div class="subtitle">${netProfit >= 0 ? 'Profitable!' : 'Review expenses'}</div>
+                </div>
+            `;
+        }
+
+        function showDashboardError() {
+            const dashboardDiv = document.getElementById('dashboardSummary');
+            dashboardDiv.innerHTML = `
+                <div class="loading-dashboard">
+                    ⚠️ Unable to load dashboard data. Check your connection.
+                </div>
+            `;
+        }
+
+        // Auto-refresh dashboard when data changes
+        function refreshDashboard() {
+            loadDashboard();
+        }
+
+        // Sales API functions
+        async function addSale(saleData) {
+            try {
+                const response = await fetch(`${API_BASE}/sales`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(saleData)
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    showMessage('Sale added successfully!', 'success');
+                    loadSales(); // Refresh the sales list
+                    refreshDashboard(); // Refresh dashboard totals
+                    return result;
+                } else {
+                    // Handle validation errors
+                    if (result.details && Array.isArray(result.details)) {
+                        showMessage(`Validation error: ${result.details.join(', ')}`, 'error');
+                    } else {
+                        showMessage(result.error || 'Failed to add sale', 'error');
+                    }
+                }
+            } catch (error) {
+                console.error('Error adding sale:', error);
+                showMessage('Network error: Could not add sale', 'error');
+            }
+        }
+
+        async function loadSales() {
+            const resultsDiv = document.getElementById('salesResults');
+            resultsDiv.innerHTML = '<div class="loading">Loading sales...</div>';
+            
+            try {
+                const response = await fetch(`${API_BASE}/sales`);
+                const result = await response.json();
+                
+                if (response.ok) {
+                    displaySales(result.data);
+                } else {
+                    resultsDiv.innerHTML = '<div class="error">Failed to load sales</div>';
+                }
+            } catch (error) {
+                console.error('Error loading sales:', error);
+                resultsDiv.innerHTML = '<div class="error">Network error: Could not load sales</div>';
+            }
+        }
+
+        function displaySales(sales) {
+            const resultsDiv = document.getElementById('salesResults');
+            
+            if (!sales || sales.length === 0) {
+                resultsDiv.innerHTML = '<div class="empty">No sales recorded yet</div>';
+                return;
+            }
+            
+            // Create HTML for each sale
+            const salesHTML = sales.map(sale => `
+                <div class="item">
+                    <h3>${sale.item_name}</h3>
+                    <p><strong>Amount:</strong> ${formatCurrency(sale.amount)}</p>
+                    <p><strong>Date:</strong> ${formatDate(sale.date)}</p>
+                    ${sale.customer ? `<p><strong>Customer:</strong> ${sale.customer}</p>` : ''}
+                    <p><strong>Added:</strong> ${formatDate(sale.created_at)}</p>
+                </div>
+            `).join('');
+            
+            resultsDiv.innerHTML = salesHTML;
+        }
+
+        // Expenses API functions
+        async function addExpense(expenseData) {
+            try {
+                const response = await fetch(`${API_BASE}/expenses`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(expenseData)
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    showMessage('Expense added successfully!', 'success');
+                    loadExpenses(); // Refresh the expenses list
+                    refreshDashboard(); // Refresh dashboard totals
+                    return result;
+                } else {
+                    // Handle validation errors
+                    if (result.details && Array.isArray(result.details)) {
+                        showMessage(`Validation error: ${result.details.join(', ')}`, 'error');
+                    } else {
+                        showMessage(result.error || 'Failed to add expense', 'error');
+                    }
+                }
+            } catch (error) {
+                console.error('Error adding expense:', error);
+                showMessage('Network error: Could not add expense', 'error');
+            }
+        }
+
+        async function loadExpenses() {
+            const resultsDiv = document.getElementById('expensesResults');
+            resultsDiv.innerHTML = '<div class="loading">Loading expenses...</div>';
+            
+            try {
+                const response = await fetch(`${API_BASE}/expenses`);
+                const result = await response.json();
+                
+                if (response.ok) {
+                    displayExpenses(result.data);
+                } else {
+                    resultsDiv.innerHTML = '<div class="error">Failed to load expenses</div>';
+                }
+            } catch (error) {
+                console.error('Error loading expenses:', error);
+                resultsDiv.innerHTML = '<div class="error">Network error: Could not load expenses</div>';
+            }
+        }
+
+        function displayExpenses(expenses) {
+            const resultsDiv = document.getElementById('expensesResults');
+            
+            if (!expenses || expenses.length === 0) {
+                resultsDiv.innerHTML = '<div class="empty">No expenses recorded yet</div>';
+                return;
+            }
+            
+            // Create HTML for each expense
+            const expensesHTML = expenses.map(expense => `
+                <div class="item">
+                    <h3>${expense.description}</h3>
+                    <p><strong>Amount:</strong> ${formatCurrency(expense.amount)}</p>
+                    <p><strong>Date:</strong> ${formatDate(expense.date)}</p>
+                    <p><strong>Added:</strong> ${formatDate(expense.created_at)}</p>
+                </div>
+            `).join('');
+            
+            resultsDiv.innerHTML = expensesHTML;
+        }
+
+        // Inventory API functions
+        async function addInventoryItem(itemData) {
+            try {
+                const response = await fetch(`${API_BASE}/inventory`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(itemData)
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    showMessage('Inventory item added successfully!', 'success');
+                    loadInventory(); // Refresh the inventory list
+                    refreshDashboard(); // Refresh dashboard totals
+                    return result;
+                } else {
+                    // Handle validation errors
+                    if (result.details && Array.isArray(result.details)) {
+                        showMessage(`Validation error: ${result.details.join(', ')}`, 'error');
+                    } else {
+                        showMessage(result.error || 'Failed to add inventory item', 'error');
+                    }
+                }
+            } catch (error) {
+                console.error('Error adding inventory item:', error);
+                showMessage('Network error: Could not add inventory item', 'error');
+            }
+        }
+
+        async function loadInventory() {
+            const resultsDiv = document.getElementById('inventoryResults');
+            resultsDiv.innerHTML = '<div class="loading">Loading inventory...</div>';
+            
+            try {
+                const response = await fetch(`${API_BASE}/inventory`);
+                const result = await response.json();
+                
+                if (response.ok) {
+                    displayInventory(result.data);
+                } else {
+                    resultsDiv.innerHTML = '<div class="error">Failed to load inventory</div>';
+                }
+            } catch (error) {
+                console.error('Error loading inventory:', error);
+                resultsDiv.innerHTML = '<div class="error">Network error: Could not load inventory</div>';
+            }
+        }
+
+        function displayInventory(items) {
+            const resultsDiv = document.getElementById('inventoryResults');
+            
+            if (!items || items.length === 0) {
+                resultsDiv.innerHTML = '<div class="empty">No inventory items yet</div>';
+                return;
+            }
+            
+            // Create HTML for each inventory item
+            const inventoryHTML = items.map(item => `
+                <div class="item">
+                    <h3>${item.item_name}</h3>
+                    <p><strong>Quantity:</strong> ${item.quantity}</p>
+                    <p><strong>Price:</strong> ${formatCurrency(item.price)}</p>
+                    <p><strong>Total Value:</strong> ${formatCurrency(item.quantity * item.price)}</p>
+                    <p><strong>Added:</strong> ${formatDate(item.created_at)}</p>
+                </div>
+            `).join('');
+            
+            resultsDiv.innerHTML = inventoryHTML;
+        }
+
+        // Form submission handlers
+        document.addEventListener('DOMContentLoaded', function() {
+            // Set today's date as default for date inputs
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('saleDate').value = today;
+            document.getElementById('expenseDate').value = today;
+            
+            // Sales form submission
+            document.getElementById('salesForm').addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                const formData = new FormData(this);
+                const saleData = {
+                    item_name: formData.get('item_name'),
+                    amount: parseFloat(formData.get('amount')),
+                    date: formData.get('date'),
+                    customer: formData.get('customer') || null
+                };
+                
+                // Clear form after submission
+                this.reset();
+                document.getElementById('saleDate').value = today;
+                
+                addSale(saleData);
+            });
+            
+            // Expenses form submission
+            document.getElementById('expensesForm').addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                const formData = new FormData(this);
+                const expenseData = {
+                    description: formData.get('description'),
+                    amount: parseFloat(formData.get('amount')),
+                    date: formData.get('date')
+                };
+                
+                // Clear form after submission
+                this.reset();
+                document.getElementById('expenseDate').value = today;
+                
+                addExpense(expenseData);
+            });
+            
+            // Inventory form submission
+            document.getElementById('inventoryForm').addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                const formData = new FormData(this);
+                const itemData = {
+                    item_name: formData.get('item_name'),
+                    quantity: parseInt(formData.get('quantity')),
+                    price: parseFloat(formData.get('price'))
+                };
+                
+                // Clear form after submission
+                this.reset();
+                
+                addInventoryItem(itemData);
+            });
+            
+            // Load initial data when page loads
+            loadDashboard(); // Load dashboard first
+            loadSales();
+            loadExpenses();
+            loadInventory();
+        });
+    </script>
+</body>
+</html>

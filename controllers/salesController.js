@@ -1,4 +1,5 @@
-const { db, validateSale } = require('../models/schema');
+const { validateSale } = require('../models/schema');
+const { pool } = require('../db');
 
 /**
  * Add a new sale to the database
@@ -8,83 +9,78 @@ const { db, validateSale } = require('../models/schema');
  * @param {number} saleData.amount - Sale amount (must be >= 0)
  * @param {string} saleData.date - Sale date (ISO-8601 format)
  * @param {string} [saleData.customer] - Customer name (optional)
- * @returns {Promise<Object>} Created sale record with ID
- * @throws {Error} Validation error or database error
+ * @returns {Promise<Object>} Result object with success status and data/error
  */
 async function addSale(saleData) {
   // Validate input data
   const validation = validateSale(saleData);
   if (!validation.valid) {
-    const error = new Error('Validation failed');
-    error.validation = true;
-    error.errors = validation.errors;
-    throw error;
+    return {
+      success: false,
+      error: 'Validation failed',
+      details: validation.errors
+    };
   }
 
-  return new Promise((resolve, reject) => {
-    // Use prepared statement for safety against SQL injection
-    const stmt = db.prepare(`
-      INSERT INTO sales (item_name, amount, date, customer)
-      VALUES (?, ?, ?, ?)
-    `);
-
-    // Execute prepared statement with parameters
-    stmt.run([
-      saleData.item_name.trim(),
-      saleData.amount,
-      saleData.date,
-      saleData.customer ? saleData.customer.trim() : null
-    ], function(err) {
-      stmt.finalize(); // Clean up prepared statement
-      
-      if (err) {
-        console.error('Database error adding sale:', err);
-        reject(new Error('Failed to add sale to database'));
-        return;
-      }
-
-      // Return the created sale with the generated ID
-      resolve({
-        id: this.lastID,
-        item_name: saleData.item_name.trim(),
-        amount: saleData.amount,
-        date: saleData.date,
-        customer: saleData.customer ? saleData.customer.trim() : null,
-        created_at: new Date().toISOString()
-      });
+  try {
+    const { rows } = await pool.query(
+      `INSERT INTO sales (item_name, amount, date, customer)
+       VALUES ($1, $2, $3, $4)
+       RETURNING id, item_name, amount, date, customer, created_at`,
+      [
+        saleData.item_name.trim(),
+        saleData.amount,
+        saleData.date,
+        saleData.customer ? saleData.customer.trim() : null
+      ]
+    );
+    
+    console.log(`✅ Successfully added sale: ${saleData.item_name} - $${saleData.amount}`);
+    return {
+      success: true,
+      data: rows[0],
+      message: 'Sale added successfully'
+    };
+  } catch (err) {
+    console.error('❌ Database error adding sale:', err.message);
+    console.error('Error details:', {
+      code: err.code,
+      detail: err.detail,
+      hint: err.hint
     });
-  });
+    
+    return {
+      success: false,
+      error: 'Failed to add sale to database',
+      details: err.message
+    };
+  }
 }
 
 /**
  * Retrieve all sales from the database
  * 
  * @returns {Promise<Array>} Array of all sales records
- * @throws {Error} Database error
  */
 async function getAllSales() {
-  return new Promise((resolve, reject) => {
-    // Use prepared statement for safety
-    const stmt = db.prepare(`
-      SELECT id, item_name, amount, date, customer, created_at
-      FROM sales
-      ORDER BY created_at DESC
-    `);
-
-    // Execute query and collect all results
-    stmt.all([], (err, rows) => {
-      stmt.finalize(); // Clean up prepared statement
-      
-      if (err) {
-        console.error('Database error fetching sales:', err);
-        reject(new Error('Failed to fetch sales from database'));
-        return;
-      }
-
-      // Return all sales records
-      resolve(rows || []);
+  try {
+    const { rows } = await pool.query(
+      `SELECT id, item_name, amount, date, customer, created_at
+       FROM sales
+       ORDER BY created_at DESC`
+    );
+    console.log(`✅ Successfully fetched ${rows.length} sales records`);
+    return rows || [];
+  } catch (err) {
+    console.error('❌ Database error fetching sales:', err.message);
+    console.error('Error details:', {
+      code: err.code,
+      detail: err.detail,
+      hint: err.hint
     });
-  });
+    // Return empty array for graceful error handling
+    return [];
+  }
 }
 
 module.exports = {

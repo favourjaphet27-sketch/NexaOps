@@ -18,24 +18,23 @@ const { addExpense, getAllExpenses } = require('../controllers/expenseController
 router.post('/', async (req, res) => {
   try {
     const result = await addExpense(req.body);
-    res.status(201).json({
-      success: true,
-      data: result,
-      message: 'Expense added successfully'
-    });
-  } catch (error) {
-    if (error.validation) {
-      return res.status(400).json({
-        success: false,
-        error: 'Validation failed',
-        details: error.errors
-      });
-    }
     
-    console.error('Error adding expense:', error);
+    if (result.success) {
+      res.status(201).json(result);
+    } else {
+      // Handle validation errors
+      if (result.error === 'Validation failed') {
+        res.status(400).json(result);
+      } else {
+        // Handle database errors
+        res.status(500).json(result);
+      }
+    }
+  } catch (error) {
+    console.error('Unexpected error in expenses route:', error);
     res.status(500).json({
       success: false,
-      error: 'Failed to add expense',
+      error: 'Unexpected server error',
       message: 'Internal server error'
     });
   }

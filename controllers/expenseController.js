@@ -1,4 +1,5 @@
-const { db, validateExpense } = require('../models/schema');
+const { validateExpense } = require('../models/schema');
+const { pool } = require('../db');
 
 /**
  * Add a new expense to the database
@@ -7,81 +8,77 @@ const { db, validateExpense } = require('../models/schema');
  * @param {string} expenseData.description - Description of the expense
  * @param {number} expenseData.amount - Expense amount (must be >= 0)
  * @param {string} expenseData.date - Expense date (ISO-8601 format)
- * @returns {Promise<Object>} Created expense record with ID
- * @throws {Error} Validation error or database error
+ * @returns {Promise<Object>} Result object with success status and data/error
  */
 async function addExpense(expenseData) {
   // Validate input data
   const validation = validateExpense(expenseData);
   if (!validation.valid) {
-    const error = new Error('Validation failed');
-    error.validation = true;
-    error.errors = validation.errors;
-    throw error;
+    return {
+      success: false,
+      error: 'Validation failed',
+      details: validation.errors
+    };
   }
 
-  return new Promise((resolve, reject) => {
-    // Use prepared statement for safety against SQL injection
-    const stmt = db.prepare(`
-      INSERT INTO expenses (description, amount, date)
-      VALUES (?, ?, ?)
-    `);
-
-    // Execute prepared statement with parameters
-    stmt.run([
-      expenseData.description.trim(),
-      expenseData.amount,
-      expenseData.date
-    ], function(err) {
-      stmt.finalize(); // Clean up prepared statement
-      
-      if (err) {
-        console.error('Database error adding expense:', err);
-        reject(new Error('Failed to add expense to database'));
-        return;
-      }
-
-      // Return the created expense with the generated ID
-      resolve({
-        id: this.lastID,
-        description: expenseData.description.trim(),
-        amount: expenseData.amount,
-        date: expenseData.date,
-        created_at: new Date().toISOString()
-      });
+  try {
+    const { rows } = await pool.query(
+      `INSERT INTO expenses (description, amount, date)
+       VALUES ($1, $2, $3)
+       RETURNING id, description, amount, date, created_at`,
+      [
+        expenseData.description.trim(),
+        expenseData.amount,
+        expenseData.date
+      ]
+    );
+    
+    console.log(`✅ Successfully added expense: ${expenseData.description} - $${expenseData.amount}`);
+    return {
+      success: true,
+      data: rows[0],
+      message: 'Expense added successfully'
+    };
+  } catch (err) {
+    console.error('❌ Database error adding expense:', err.message);
+    console.error('Error details:', {
+      code: err.code,
+      detail: err.detail,
+      hint: err.hint
     });
-  });
+    
+    return {
+      success: false,
+      error: 'Failed to add expense to database',
+      details: err.message
+    };
+  }
 }
 
 /**
  * Retrieve all expenses from the database
  * 
  * @returns {Promise<Array>} Array of all expense records
- * @throws {Error} Database error
  */
 async function getAllExpenses() {
-  return new Promise((resolve, reject) => {
-    // Use prepared statement for safety
-    const stmt = db.prepare(`
-      SELECT id, description, amount, date, created_at
-      FROM expenses
-      ORDER BY created_at DESC
-    `);
-
-    // Execute query and collect all results
-    stmt.all([], (err, rows) => {
-      stmt.finalize(); // Clean up prepared statement
-      
-      if (err) {
-        console.error('Database error fetching expenses:', err);
-        reject(new Error('Failed to fetch expenses from database'));
-        return;
-      }
-
-      // Return all expense records
-      resolve(rows || []);
+  try {
+    const { rows } = await pool.query(
+      `SELECT id, description, amount, date, created_at
+       FROM expenses
+       ORDER BY created_at DESC`
+    );
+    console.log(`✅ Successfully fetched ${rows.length} expense records`);
+    return rows || [];
+  } catch (err) {
+    console.error('❌ Database error fetching expenses:', err.message);
+    console.error('Error details:', {
+      code: err.code,
+      detail: err.detail,
+      hint: err.hint
     });
-  });
+    // Return empty array for graceful error handling
+    return [];
+  }
 }
 
 module.exports = {
